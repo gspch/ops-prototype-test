@@ -1,3 +1,0 @@
-mistralai
-pydantic>=2
-pyyaml
