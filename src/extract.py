@@ -46,6 +46,7 @@ def extract(notes: str, today: str, model: str) -> ActionList:
         ],
         response_format=ActionList,
         temperature=0,
+        top_p=1,
     )
     message = resp.choices[0].message
     parsed = getattr(message, "parsed", None)

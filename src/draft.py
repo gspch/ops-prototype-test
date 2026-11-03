@@ -41,6 +41,7 @@ def _complete(model: str, system: str, payload: Dict) -> str:
             {"role": "user", "content": json.dumps(payload, indent=2, ensure_ascii=False)},
         ],
         temperature=0,
+        top_p=1,
     )
     return resp.choices[0].message.content.strip()
 
