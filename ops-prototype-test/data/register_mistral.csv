@@ -1,0 +1,4 @@
+id,description,owner,side,workstream,due_date,status,depends_on,source,last_update
+PLT-020,Deliver the deployment runbook,Hugo Bernard,Mistral,PLT,2026-11-04,In progress,,meeting,2026-10-30
+PLT-041,Finish the staging environment,Hugo Bernard,Mistral,PLT,2026-11-11,Blocked,PLT-040,meeting,2026-10-28
+UC-010,Draft success criteria for the pilot,Leo Petit,Mistral,UC,2026-11-12,In progress,,meeting,2026-10-29
