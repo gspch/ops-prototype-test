@@ -1,0 +1,8 @@
+today: 2026-11-06
+model: mistral-large-latest
+thresholds:
+  due_soon_working_days: 5
+  blocked_escalate_working_days: 5
+critical_path: [PLT-031, PLT-040, PLT-041]
+program_owner_client: Paul Lambert
+program_lead: Program Lead
