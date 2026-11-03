@@ -1,103 +1,58 @@
+"""Step 3. Read and write the two CSV registers. Each action is written to its own side only."""
 import csv
-from datetime import datetime
-from pathlib import Path
-from typing import List, Dict, Optional, Literal
 import re
-import shutil
+from typing import Dict, List
 
-try:
-    from pydantic import BaseModel
+from schema import Action
 
-    class Action(BaseModel):
-        description: str
-        owner: Optional[str]
-        side: Literal["Client", "Mistral"]
-        workstream: Literal["PLT", "UC", "DSC", "INF"]
-        due_date: Optional[str]
-        depends_on: Optional[str]
-        evidence: str
-except ImportError:
-    Action = None
+FIELDNAMES = ["id", "description", "owner", "side", "workstream", "due_date",
+              "status", "depends_on", "source", "last_update"]
+
 
 def load_register(path: str) -> List[Dict]:
-    """Load a register CSV file."""
-    with open(path, 'r') as f:
-        reader = csv.DictReader(f)
-        return [row for row in reader]
+    with open(path, newline="") as f:
+        return list(csv.DictReader(f))
 
-def save_register(path: str, rows: List[Dict], fieldnames: List[str]) -> None:
-    """Save a register CSV file."""
-    with open(path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+def save_register(path: str, rows: List[Dict]) -> None:
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
         writer.writeheader()
         writer.writerows(rows)
 
-def get_next_id_across_registers(client_register: List[Dict], mistral_register: List[Dict],
-                                  workstream: str) -> str:
-    """
-    Get the next available ID for a workstream across both registers.
-    """
-    all_ids = []
-    for row in client_register + mistral_register:
-        if row.get('id', '').startswith(workstream):
-            match = re.match(rf'{workstream}-(\d+)', row.get('id', ''))
-            if match:
-                all_ids.append(int(match.group(1)))
 
-    if not all_ids:
-        return f"{workstream}-001"
+def next_id(client: List[Dict], mistral: List[Dict], workstream: str) -> str:
+    """Next free number for a workstream, across both registers."""
+    numbers = [int(m.group(1)) for row in client + mistral
+               if (m := re.fullmatch(rf"{workstream}-(\d+)", row.get("id", "")))]
+    return f"{workstream}-{max(numbers, default=0) + 1:03d}"
 
-    next_num = max(all_ids) + 1
-    return f"{workstream}-{next_num:03d}"
 
-def action_to_register_row(action, action_id: str, today: str) -> Dict:
-    """Convert an Action to a register row dictionary."""
+def to_row(action: Action, action_id: str, today: str) -> Dict:
     return {
-        'id': action_id,
-        'description': action.description,
-        'owner': action.owner if action.owner else '',
-        'side': action.side,
-        'workstream': action.workstream,
-        'due_date': action.due_date if action.due_date else '',
-        'status': 'Not started',
-        'depends_on': action.depends_on if action.depends_on else '',
-        'source': 'extracted',
-        'last_update': today,
+        "id": action_id,
+        "description": action.description,
+        "owner": action.owner or "",
+        "side": action.side,
+        "workstream": action.workstream,
+        "due_date": action.due_date or "",
+        "status": "Not started",
+        "depends_on": action.depends_on or "",  # the ID only, never the other side's content
+        "source": "extracted",
+        "last_update": today,
     }
 
-def write_actions_to_registers(actions, client_register_path: str,
-                              mistral_register_path: str, today: str) -> None:
-    """
-    Write multiple accepted actions to their respective registers.
-    """
-    client_register = load_register(client_register_path)
-    mistral_register = load_register(mistral_register_path)
 
-    client_actions = [a for a in actions if a.side == 'Client']
-    mistral_actions = [a for a in actions if a.side == 'Mistral']
-
-    for action in client_actions:
-        action_id = get_next_id_across_registers(client_register, mistral_register, action.workstream)
-        row = action_to_register_row(action, action_id, today)
-        client_register.append(row)
-        print(f"Wrote action {action_id} to Client register")
-
-    for action in mistral_actions:
-        action_id = get_next_id_across_registers(client_register, mistral_register, action.workstream)
-        row = action_to_register_row(action, action_id, today)
-        mistral_register.append(row)
-        print(f"Wrote action {action_id} to Mistral register")
-
-    fieldnames = ['id', 'description', 'owner', 'side', 'workstream', 'due_date',
-                  'status', 'depends_on', 'source', 'last_update']
-    save_register(client_register_path, client_register, fieldnames)
-    save_register(mistral_register_path, mistral_register, fieldnames)
-
-def backup_registers(client_register_path: str, mistral_register_path: str) -> None:
-    """Create backups of the register files."""
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    client_backup = f"{client_register_path}.backup_{timestamp}"
-    mistral_backup = f"{mistral_register_path}.backup_{timestamp}"
-    shutil.copy2(client_register_path, client_backup)
-    shutil.copy2(mistral_register_path, mistral_backup)
-    print(f"Created backups: {client_backup}, {mistral_backup}")
+def write_actions(actions: List[Action], client_path: str, mistral_path: str, today: str) -> List[Dict]:
+    """Append accepted actions to their own side's register. Returns the rows written."""
+    client = load_register(client_path)
+    mistral = load_register(mistral_path)
+    written = []
+    for action in actions:
+        row = to_row(action, next_id(client, mistral, action.workstream), today)
+        (client if action.side == "Client" else mistral).append(row)
+        written.append(row)
+        print(f"  {row['id']} -> {action.side} register")
+    save_register(client_path, client)
+    save_register(mistral_path, mistral)
+    return written
