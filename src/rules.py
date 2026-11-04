@@ -75,7 +75,7 @@ def check_cross_side_blocker(action: Dict, other_register: List[Dict]) -> bool:
 
 
 def check_critical_and_late(action: Dict, today, critical_path: List[str]) -> bool:
-    if action.get("id") not in critical_path:
+    if is_done(action) or action.get("id") not in critical_path:
         return False
     return check_overdue(action, today) or check_no_owner(action)
 
