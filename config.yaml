@@ -1,7 +1,7 @@
 today: 2026-11-06
 # Pinned version, not an alias: the demo must behave the same on Friday.
-# Mistral Large 4 (26.10), structured outputs supported.
-model: mistral-large-4-0
+# Ministral 8b (25.12), structured outputs supported.
+model: ministral-8b-2512
 thresholds:
   due_soon_working_days: 5
   blocked_escalate_working_days: 5
