@@ -37,7 +37,7 @@ If `MISTRAL_API_KEY` is missing or the Mistral client is not installed, the run 
 
 ## Configuration
 
-`config.yaml` fixes `today` at 2026-11-06 and pins the model to `mistral-large-4-0` (a dated version, not an alias).
+`config.yaml` fixes `today` at 2026-11-06 and pins the model to `ministral-8b-2512` (a dated version, not an alias).
 
 ## Rules
 
